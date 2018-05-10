@@ -1,4 +1,4 @@
 {
-  "BATCH_SIZE": 10,
-  "SLEEP_TIME": 0.05
+  "BATCH_SIZE": 50,
+  "SLEEP_TIME": 0.2
 }

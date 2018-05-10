@@ -21,6 +21,7 @@ def set_parameters():
         SLEEP_TIME = float(parameters_json["SLEEP_TIME"])
 
 
+set_parameters()
 stream_name = "test-streaming"
 kinesis_cli = boto3.client('kinesis')
 dynamodb_cli = boto3.client('dynamodb')
@@ -31,8 +32,12 @@ shard_it = kinesis_cli.get_shard_iterator(StreamName=stream_name, ShardId=shard_
 iterations = 0
 while True:
     iterations += 1
+    time_get_records_1 = time.time()
     out = kinesis_cli.get_records(ShardIterator=shard_it, Limit=BATCH_SIZE)
+    time_get_records_2 = time.time()
+    gather_time = time_get_records_2 - time_get_records_1
     records = out["Records"]
+    dynamo_time_1 = time.time()
     for record in records:
         user = json.loads(record['Data'])
         user_id = user['firstname']
@@ -48,9 +53,17 @@ while True:
                 }
             }
         )
-        #print response
+        # print response
+    dynamo_time_2 = time.time()
     shard_it = out['NextShardIterator']
-    time.sleep(SLEEP_TIME)
+    dynamo_time = dynamo_time_2 - dynamo_time_1
+    loop_time = SLEEP_TIME + gather_time + dynamo_time
+    wcu = len(records) / loop_time
+    print "Insert %d records in %s seconds. Aprox. consumed WCU : %f" % (len(records), loop_time, wcu)
+    if records:
+        time.sleep(SLEEP_TIME)
+    else:
+        time.sleep(1)
     print iterations
     if iterations % 10 == 0:
         set_parameters()
